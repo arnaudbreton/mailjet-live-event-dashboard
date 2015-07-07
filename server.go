@@ -191,7 +191,7 @@ func main() {
 	// Read the events from the file.
 	configFile, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
-		log.Fatal(fmt.Sprintf("Unable to read the config file (%s): %s", dataFile, err), http.StatusInternalServerError)
+		log.Fatal(fmt.Sprintf("Unable to read the config file (%s): %s", configFilePath, err), http.StatusInternalServerError)
 		return
 	}
 	json.Unmarshal(configFile, &config)
