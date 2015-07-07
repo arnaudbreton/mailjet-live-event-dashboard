@@ -154,7 +154,6 @@ func handleMessages(w http.ResponseWriter, r *http.Request) {
 			Body: messagePayload.Body,
 		}
 		payloadMarshalled, err := json.Marshal(payload)
-		log.Println("payloadMarshalled", string(payloadMarshalled))
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error when marshalling payload : %s", err), http.StatusInternalServerError)
 			return
@@ -183,7 +182,10 @@ func handleMessages(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	port := os.Args[1]
+	port := ""
+	if len(os.Args) == 2 {
+		port = os.Args[1]
+	}
 	if port == "" {
 		port = "3000"
 	}

@@ -12,7 +12,6 @@
 
 var Event = React.createClass({
   render: function() {
-    console.log(this.props.children);
     var rawMarkup = marked(this.props.children.toString(), {sanitize: true});
     return (
       <div className="Event">
