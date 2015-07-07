@@ -109,9 +109,9 @@ var EventForm = React.createClass({
   render: function() {
     return (
       <form className="EventForm" onSubmit={this.handleSubmit}>
-        <input type="text" placeholder="Recipient" ref="recipient" value="arnaud@mailjet.com"/>
-        <input type="text" placeholder="Subject" ref="subject" value="test" />
-        <textarea placeholder="Say something..." ref="body">Hello!</textarea>
+        <input type="text" placeholder="Recipient" ref="recipient"/>
+        <input type="text" placeholder="Subject" ref="subject" />
+        <textarea placeholder="Say something..." ref="body"></textarea>
         <input type="submit" value="Post" />
       </form>
     );
