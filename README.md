@@ -5,7 +5,7 @@ Based on offical [React tutorial](https://github.com/reactjs/react-tutorial)
 
 ## Demo
 
-Go [here]()
+Go [here](http://37.187.61.17:3001/)
 
 ## Installation
 
