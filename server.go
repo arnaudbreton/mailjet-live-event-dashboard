@@ -24,21 +24,49 @@ import (
 	"sync"
 )
 
-type comment struct {
-	Author string `json:"author"`
-	Text   string `json:"text"`
+type eventPayload struct {
+	Event string `json:"event"`
+	MessageID int `json:"MessageID"`
 }
 
-const dataFile = "./comments.json"
+type eventItem struct {
+	EventType string
+	MessageID int
+}
 
-var commentMutex = new(sync.Mutex)
+type messagePayload struct {
+	Recipient string
+	Body string
+	Subject string
+}
 
-// Handle comments
-func handleComments(w http.ResponseWriter, r *http.Request) {
+type mailjetAPIMessagePayload struct {
+	FromEmail string
+	Subject string
+	Recipient string
+	Body string `json:"Text-part"`
+}
+
+type mailjetConfig struct {
+	ApiKey string
+	ApiSecret string
+	BaseUrl string
+	DefaultSender string
+}
+
+const dataFile = "./events.json"
+const configFilePath = "./config.json"
+
+var eventMutex = new(sync.Mutex)
+
+var config = mailjetConfig{}
+
+// Handle events
+func handleevents(w http.ResponseWriter, r *http.Request) {
 	// Since multiple requests could come in at once, ensure we have a lock
 	// around all file operations
-	commentMutex.Lock()
-	defer commentMutex.Unlock()
+	eventMutex.Lock()
+	defer eventMutex.Unlock()
 
 	// Stat the file, so we can find its current permissions
 	fi, err := os.Stat(dataFile)
@@ -47,8 +75,8 @@ func handleComments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Read the comments from the file.
-	commentData, err := ioutil.ReadFile(dataFile)
+	// Read the events from the file.
+	eventData, err := ioutil.ReadFile(dataFile)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Unable to read the data file (%s): %s", dataFile, err), http.StatusInternalServerError)
 		return
@@ -57,38 +85,96 @@ func handleComments(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "POST":
 		// Decode the JSON data
-		comments := make([]comment, 0)
-		if err := json.Unmarshal(commentData, &comments); err != nil {
-			http.Error(w, fmt.Sprintf("Unable to Unmarshal comments from data file (%s): %s", dataFile, err), http.StatusInternalServerError)
+		events := make([]eventItem, 0)
+		if err := json.Unmarshal(eventData, &events); err != nil {
+			http.Error(w, fmt.Sprintf("Unable to Unmarshal events from data file (%s): %s", dataFile, err), http.StatusInternalServerError)
 			return
 		}
 
-		// Add a new comment to the in memory slice of comments
-		comments = append(comments, comment{Author: r.FormValue("author"), Text: r.FormValue("text")})
+		response, _ := ioutil.ReadAll(r.Body)
+		log.Println("New event payload received", string(response))
+		// log.Println("Response", string(response))
+		eventPayload := eventPayload{}
+		json.Unmarshal(response, &eventPayload)
+		// log.Printf("Unmarshal %+v\n", event)
 
-		// Marshal the comments to indented json.
-		commentData, err = json.MarshalIndent(comments, "", "    ")
+		// Add a new event to the in memory slice of events
+		eventItem := eventItem{
+			EventType: eventPayload.Event,
+			MessageID: eventPayload.MessageID,
+		}
+		events = append(events, eventItem)
+		// fmt.Printf("%+v\n", events)
+
+		// Marshal the events to indented json.
+		eventData, err = json.Marshal(events)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("Unable to marshal comments to json: %s", err), http.StatusInternalServerError)
+			http.Error(w, fmt.Sprintf("Unable to marshal events to json: %s", err), http.StatusInternalServerError)
 			return
 		}
 
-		// Write out the comments to the file, preserving permissions
-		err := ioutil.WriteFile(dataFile, commentData, fi.Mode())
+		// Write out the events to the file, preserving permissions
+		err := ioutil.WriteFile(dataFile, eventData, fi.Mode())
 		if err != nil {
-			http.Error(w, fmt.Sprintf("Unable to write comments to data file (%s): %s", dataFile, err), http.StatusInternalServerError)
+			http.Error(w, fmt.Sprintf("Unable to write events to data file (%s): %s", dataFile, err), http.StatusInternalServerError)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "no-cache")
-		io.Copy(w, bytes.NewReader(commentData))
+		io.Copy(w, bytes.NewReader(eventData))
 
 	case "GET":
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "no-cache")
 		// stream the contents of the file to the response
-		io.Copy(w, bytes.NewReader(commentData))
+		io.Copy(w, bytes.NewReader(eventData))
+
+	default:
+		// Don't know the method, so error
+		http.Error(w, fmt.Sprintf("Unsupported method: %s", r.Method), http.StatusMethodNotAllowed)
+	}
+}
+
+// Handle messages
+func handleMessages(w http.ResponseWriter, r *http.Request) {
+
+	switch r.Method {
+	case "POST":
+		response, _ := ioutil.ReadAll(r.Body)
+		log.Println("New message payload received", string(response))
+
+		messagePayload := messagePayload{}
+		json.Unmarshal(response, &messagePayload)
+
+		payload := mailjetAPIMessagePayload{
+			FromEmail: config.DefaultSender,
+			Recipient: messagePayload.Recipient,
+			Subject: messagePayload.Subject,
+			Body: messagePayload.Body,
+		}
+		payloadMarshalled, err := json.Marshal(payload)
+		log.Println("payloadMarshalled", string(payloadMarshalled))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Error when marshalling payload : %s", err), http.StatusInternalServerError)
+			return
+		}
+
+		client := &http.Client{}
+		req, _ := http.NewRequest("POST", config.BaseUrl + "/v3/send/message", bytes.NewReader(payloadMarshalled))
+		req.Header.Set("Content-Type", "application/json")
+		req.SetBasicAuth(config.ApiKey, config.ApiSecret)
+
+		mailjetResponse, err := client.Do(req)
+		if  err != nil {
+			http.Error(w, fmt.Sprintf("Unable to POST the message to Mailjet : %s", err), http.StatusInternalServerError)
+			return
+		}
+		log.Println(mailjetResponse)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-cache")
+		// io.Copy(w, bytes.NewReader(messagePayload))
 
 	default:
 		// Don't know the method, so error
@@ -97,11 +183,21 @@ func handleComments(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	port := os.Getenv("PORT")
+	port := os.Args[1]
 	if port == "" {
 		port = "3000"
 	}
-	http.HandleFunc("/comments.json", handleComments)
+
+	// Read the events from the file.
+	configFile, err := ioutil.ReadFile(configFilePath)
+	if err != nil {
+		log.Fatal(fmt.Sprintf("Unable to read the config file (%s): %s", dataFile, err), http.StatusInternalServerError)
+		return
+	}
+	json.Unmarshal(configFile, &config)
+
+	http.HandleFunc("/events.json", handleevents)
+	http.HandleFunc("/messages", handleMessages)
 	http.Handle("/", http.FileServer(http.Dir("./public")))
 	log.Println("Server started: http://localhost:" + port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))

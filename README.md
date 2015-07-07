@@ -1,40 +1,20 @@
-[![Deploy](https://www.herokucdn.com/deploy/button.png)](https://heroku.com/deploy)
+# Mailjet Live Event API Dashboard
 
-# React Tutorial
+A live dashboard built in [ReactJS](http://facebook.github.io/react/), for [Mailjet](https://mailjet.com) [Event API](http://dev.mailjet.com/guides/event-api-guide/).
+Based on offical [React tutorial](https://github.com/reactjs/react-tutorial)
 
-This is the React comment box example from [the React tutorial](http://facebook.github.io/react/docs/tutorial.html).
+## Demo
 
-## To use
+Go [here]()
 
-There are several simple server implementations included. They all serve static files from `public/` and handle requests to `comments.json` to fetch or add data. Start a server with one of the following:
+## Installation
 
-### Node
+Install [Golang](http://golang.org/) to run the server.
 
-```sh
-npm install
-node server.js
-```
+Copy the `config.json.dist` file to `config.json` and fill it with your [API Keys](https://app.mailjet.com/account/api_keys) and [default sender](https://app.mailjet.com/account/sender).
+Run the server: `go run server.go`. The server accepts an optional parameter to set the port.
 
-### Python
+Setup a callback URL for [Mailjet Event](https://app.mailjet.com/account/triggers) or via our [Event API](http://dev.mailjet.com/guides/event-api-guide/).
+Go to `localhost:port` and send an email via the form.
 
-```sh
-pip install -r requirements.txt
-python server.py
-```
-
-### Ruby
-```sh
-ruby server.rb
-```
-
-### PHP
-```sh
-php server.php
-```
-
-### Go
-```sh
-go run server.go
-```
-
-And visit <http://localhost:3000/>. Try opening multiple tabs!
+Subscribed event should appear for the message sent.
