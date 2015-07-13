@@ -64,7 +64,7 @@ var EventBox = React.createClass({
       <div className="EventBox">
         <h1>Mailjet Live Event API Dashboard</h1>
         <EventList data={this.state.data} />
-        <EventForm onEventSubmit={this.handleEventSubmit} />
+        <SendForm onEventSubmit={this.handleEventSubmit} />
       </div>
     );
   }
@@ -91,27 +91,50 @@ var EventList = React.createClass({
   }
 });
 
-var EventForm = React.createClass({
+var SendForm = React.createClass({
   handleSubmit: function(e) {
     e.preventDefault();
+    var apiKey = React.findDOMNode(this.refs.apiKey).value.trim();
+    var apiSecret = React.findDOMNode(this.refs.apiSecret).value.trim();
+    var fromEmail = React.findDOMNode(this.refs.fromEmail).value.trim();
     var recipient = React.findDOMNode(this.refs.recipient).value.trim();
     var subject = React.findDOMNode(this.refs.subject).value.trim();
     var body = React.findDOMNode(this.refs.body).value.trim();
     if (!recipient || !body) {
       return;
     }
-    this.props.onEventSubmit({Recipient: recipient, Subject: subject, Body: body});
+    this.props.onEventSubmit({
+      ApiKey: apiKey,
+      ApiSecret: apiSecret,
+      FromEmail: fromEmail,
+      Recipient: recipient, 
+      Subject: subject, 
+      Body: body
+    });
     React.findDOMNode(this.refs.recipient).value = '';
     React.findDOMNode(this.refs.subject).value = '';
     React.findDOMNode(this.refs.body).value = '';
   },
   render: function() {
     return (
-      <form className="EventForm" onSubmit={this.handleSubmit}>
-        <input type="text" placeholder="Recipient" ref="recipient"/>
-        <input type="text" placeholder="Subject" ref="subject" />
-        <textarea placeholder="Say something..." ref="body"></textarea>
-        <input type="submit" value="Post" />
+      <form className="SendForm" onSubmit={this.handleSubmit}>
+        <div className="form-group">
+          <label htmlFor="apiKey">Mailjet API Key:</label>
+          <input type="text" id="apiKey" ref="apiKey" className="form-control"/>
+          <label htmlFor="apiSecret">Mailjet API Secret:</label>
+          <input type="text" id="apiSecret" ref="apiSecret" className="form-control"/>
+        </div>
+        <div className="form-group">
+          <label htmlFor="fromEmail">From email (valid Mailjet sender)</label>
+          <input type="text" placeholder="api@mailjet.com" id="fromEmail" ref="fromEmail" className="form-control"/>
+          <label htmlFor="recipient">To</label>
+          <input type="text" placeholder="api@mailjet.com" id="recipient" ref="recipient" className="form-control"/>
+          <label htmlFor="subject">Subject</label>
+          <input type="text" placeholder="Hello World!" id="subject" ref="subject" className="form-control"/>
+          <label htmlFor="body">Subject</label>
+          <textarea placeholder="Say something..." id="body" ref="body" className="form-control"></textarea>
+          <input type="submit" value="Send!" className="btn btn-default"/>
+        </div>
       </form>
     );
   }

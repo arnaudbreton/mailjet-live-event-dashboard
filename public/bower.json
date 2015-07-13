@@ -1,0 +1,10 @@
+{
+  "name": "mailjet-live-event-dashboard",
+  "version": "1.0.0",
+  "homepage": "https://github.com/arnaudbreton/mailjet-live-event-dashboard",
+  "authors": [
+    "Arnaud BRETON <abreton@mailjet.com>"
+  ],
+  "description": "A live Dashboard for Mailjet Event API",
+  "license": "MIT"
+}

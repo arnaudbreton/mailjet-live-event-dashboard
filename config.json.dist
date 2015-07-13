@@ -1,6 +1,3 @@
 {
-	"ApiKey": "",
-	"ApiSecret": "",
-	"BaseUrl": "https://api.mailjet.com",
-	"DefaultSender": ""
+	"BaseUrl": "https://api.mailjet.com"
 }

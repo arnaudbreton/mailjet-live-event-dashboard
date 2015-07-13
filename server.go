@@ -35,6 +35,9 @@ type eventItem struct {
 }
 
 type messagePayload struct {
+	ApiKey string
+	ApiSecret string
+	FromEmail string
 	Recipient string
 	Body string
 	Subject string
@@ -48,10 +51,7 @@ type mailjetAPIMessagePayload struct {
 }
 
 type mailjetConfig struct {
-	ApiKey string
-	ApiSecret string
 	BaseUrl string
-	DefaultSender string
 }
 
 const dataFile = "./events.json"
@@ -148,7 +148,7 @@ func handleMessages(w http.ResponseWriter, r *http.Request) {
 		json.Unmarshal(response, &messagePayload)
 
 		payload := mailjetAPIMessagePayload{
-			FromEmail: config.DefaultSender,
+			FromEmail: messagePayload.FromEmail,
 			Recipient: messagePayload.Recipient,
 			Subject: messagePayload.Subject,
 			Body: messagePayload.Body,
@@ -162,14 +162,14 @@ func handleMessages(w http.ResponseWriter, r *http.Request) {
 		client := &http.Client{}
 		req, _ := http.NewRequest("POST", config.BaseUrl + "/v3/send/message", bytes.NewReader(payloadMarshalled))
 		req.Header.Set("Content-Type", "application/json")
-		req.SetBasicAuth(config.ApiKey, config.ApiSecret)
+		req.SetBasicAuth(messagePayload.ApiKey, messagePayload.ApiSecret)
 
 		mailjetResponse, err := client.Do(req)
 		if  err != nil {
 			http.Error(w, fmt.Sprintf("Unable to POST the message to Mailjet : %s", err), http.StatusInternalServerError)
 			return
 		}
-		log.Println(mailjetResponse)
+		log.Println("Payload POST-ed to Mailjet Send API", mailjetResponse)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "no-cache")
@@ -197,9 +197,11 @@ func main() {
 		return
 	}
 	json.Unmarshal(configFile, &config)
+	log.Println("Read config", config)
 
 	http.HandleFunc("/events.json", handleevents)
 	http.HandleFunc("/messages", handleMessages)
+
 	http.Handle("/", http.FileServer(http.Dir("./public")))
 	log.Println("Server started: http://localhost:" + port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
