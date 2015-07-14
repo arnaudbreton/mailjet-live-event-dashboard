@@ -1,3 +1,6 @@
 {
-	"BaseUrl": "https://api.mailjet.com"
+	"BaseUrl": "https://api.mailjet.com",
+	"DefaultRecipient": "",
+	"DefaultSubject": "",
+	"DefaultBody": ""
 }
