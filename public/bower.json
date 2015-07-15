@@ -6,5 +6,8 @@
     "Arnaud BRETON <abreton@mailjet.com>"
   ],
   "description": "A live Dashboard for Mailjet Event API",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "react-bootstrap": "~0.23.7"
+  }
 }
