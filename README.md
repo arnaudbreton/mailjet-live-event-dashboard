@@ -18,7 +18,7 @@ Copy the `config.json.dist` file to `config.json` and fill it with the following
 *`DefaultSubject`: the default subject of the sample email
 *`DefaultBody`: the default body of the sample email
 
-Run the following command to install front-end dependencies: `cd public && bower install`
+Run the bower install command to fetch front-end dependencies: `bower install`
 Run the server: `go run server.go`. The server accepts an optional parameter to set the port.
 Go to `localhost:port` (default port is 3000) and follow the instructions.
 
