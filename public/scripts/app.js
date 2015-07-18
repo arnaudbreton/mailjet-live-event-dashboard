@@ -39,6 +39,23 @@ var EventBox = React.createClass({
       }.bind(this)
     });
   },
+  componentDidMount: function () {
+    $.ajax({
+        url: this.props.configUrl,
+        dataType: 'json',
+        type: 'GET',
+        success: function(config) { // callback method for further manipulations             
+          console.log("Config loaded", config);
+
+          this.setState({config: config, configError: null});
+        }.bind(this),
+        error: function(xhr, status, err) {
+          this.setState({
+            configError: xhr.responseText
+          })
+        }.bind(this)
+      });
+  },
   componentDidUpdate: function (prevProps, prevState) {
     if (prevState.apiKey != this.state.apiKey) 
     {
@@ -60,6 +77,8 @@ var EventBox = React.createClass({
   },
   getInitialState: function() {
     return {
+      config: {},
+      configError: null,
       apiKey: null,
       apiSecret: null,
       intervalId: null,
@@ -75,9 +94,9 @@ var EventBox = React.createClass({
         </p>
         <div className="container-fluid">
           <div className="col-md-6">
-            <ConfigForm onEventSubmit={this.handleConfigSubmit} />
-            <EventCallbackSetupForm url={this.props.eventSetupUrl} apiKey={this.state.apiKey} apiSecret={this.state.apiSecret}/>
-            <SendForm url={this.props.sendUrl} configUrl={this.props.configUrl} apiKey={this.state.apiKey} apiSecret={this.state.apiSecret} />
+            <ConfigForm config={this.state.config} onEventSubmit={this.handleConfigSubmit} />
+            <EventCallbackSetupForm  url={this.props.eventSetupUrl} apiKey={this.state.apiKey} apiSecret={this.state.apiSecret}/>
+            <SendForm url={this.props.sendUrl} config={this.state.config} apiKey={this.state.apiKey} apiSecret={this.state.apiSecret} />
           </div>
           <div className="col-md-6">
             <EventList data={this.state.data} apiKey={this.state.apiKey}/>
@@ -126,23 +145,40 @@ var EventList = React.createClass({
 });
 
 var ConfigForm = React.createClass({
+  mixins: [React.addons.LinkedStateMixin],
   handleSubmit: function(e) {
     e.preventDefault();
     var apiKey = React.findDOMNode(this.refs.apiKey).value.trim();
     var apiSecret = React.findDOMNode(this.refs.apiSecret).value.trim();
-    if (!apiKey || !apiSecret) {
-      this.setState({error: "API key and secret are mandatory"})
+    if (!apiKey) {
+      this.setState({error: "API key is mandatory"})
       return
     }
+
+    if (!apiSecret) {
+      this.setState({warning: "API secret is mandatory to send sample email"})
+    }
+
     this.setState({error: null})
     this.props.onEventSubmit({
       apiKey: apiKey,
       apiSecret: apiSecret,
     });
   },
+  componentDidUpdate: function (prevProps) {
+    if (prevProps.config != this.props.config) {
+      this.setState({
+        apiKey: this.props.config.DefaultApiKey,
+        apiSecret: this.props.config.DefaultApiSecret
+      });
+    }
+  },
   getInitialState: function() {
     return {
-      error: null
+      error: null,
+      warning: null,
+      apiKey: this.props.config.DefaultApiKey,
+      apiSecret: this.props.config.DefaultApiSecret,
     }
   },
   render: function() {
@@ -155,12 +191,13 @@ var ConfigForm = React.createClass({
         <form  onSubmit={this.handleSubmit}>
           <div className="form-group">
             <label htmlFor="apiKey">Mailjet API Key:</label>
-            <input type="text" id="apiKey" ref="apiKey" className="form-control"/>
+            <input type="text" id="apiKey" ref="apiKey" valueLink={this.linkState('apiKey')} className="form-control"/>
             <label htmlFor="apiSecret">Mailjet API Secret:</label>
-            <input type="text" id="apiSecret" ref="apiSecret" className="form-control" />
+            <input type="text" id="apiSecret" ref="apiSecret" valueLink={this.linkState('apiSecret')} className="form-control" />
           </div>
           <button className="btn btn-default" type="submit">Set Credentials</button>
           {this.state.error ? <div className="alert alert-danger">{this.state.error}</div> : null }
+          {this.state.warning ? <div className="alert alert-warning">{this.state.warning}</div> : null }
         </form>
       </section>
     );
@@ -168,11 +205,16 @@ var ConfigForm = React.createClass({
 });
 
 var EventCallbackSetupForm = React.createClass({
+  mixins: [React.addons.LinkedStateMixin],
+  defaultEvents: ["sent", "open", "click", "bounce", "blocked", "spam", "unsub"],
   componentDidUpdate: function (prevProps) {
     if (this.props.apiKey && this.props.apiSecret 
       && prevProps.apikey != this.props.apiKey
       && prevProps.apiSecret != this.props.apiSecret) {
-      this.setState({disabled: false});
+      this.setState({
+        eventUrl : this.getEventUrl(),
+        disabled: false
+      });
     }
   },
   handleSubmit: function(e) {
@@ -204,10 +246,7 @@ var EventCallbackSetupForm = React.createClass({
             lastCallSuccess: true,
             error: null
           })
-
-          React.findDOMNode(this.refs.eventType).value = '';
-          React.findDOMNode(this.refs.url).value = '';
-        },
+        }.bind(this),
         error: function(xhr, status, err) {
           this.setState({
             lastCallSuccess: false,
@@ -216,15 +255,48 @@ var EventCallbackSetupForm = React.createClass({
         }.bind(this)
       });
   },
+  getEventUrl: function () {
+    pathArray = location.href.split( '/' );
+    protocol = pathArray[0];
+    host = pathArray[2];
+    baseUrl = protocol + '//' + host;
+
+    var url;
+    if (baseUrl.indexOf("localhost") > -1) {
+      url = ""
+    }
+    else {
+      url = baseUrl + "/events"
+    }
+
+    if (this.props.apiKey) {
+      url += "?apikey=" + this.props.apiKey;
+    }
+
+    return url;
+  },
   getInitialState: function() {
     return {
       disabled: true,
       lastCallSuccess: null, 
-      error: null
+      error: null,
+      defaultEventType: "sent",
+      eventUrl: this.getEventUrl()
     }
+  },
+  renderEventRows: function() {
+    var defaultEventType = this.state.defaultEventType;
+    return this.defaultEvents.map(function(eventType, index) {
+        return (
+          <option value={eventType}>{eventType}</option>
+        );
+    });
   },
   render: function() {
     var disabled = this.state.disabled;
+
+    eventRows = this.renderEventRows();
+
     return (
       <section className="EventCallbackSetupForm">
         <div className="alert alert-warning">
@@ -234,9 +306,11 @@ var EventCallbackSetupForm = React.createClass({
         <form onSubmit={this.handleSubmit}>
           <div className="form-group">
             <label htmlFor="eventType">Event Type</label>
-            <input type="text" ref="eventType" className="form-control" disabled={disabled}/>
+            <select ref="eventType" className="form-control" disabled={disabled} defaultValue={this.state.defaultEventType}>
+              {eventRows}
+            </select>
             <label htmlFor="url">URL</label>
-            <input type="text" ref="url" placeholder="https://example.com" className="form-control" disabled={disabled}/>
+            <input type="text" ref="url" placeholder="https://example.com" className="form-control" valueLink={this.linkState('eventUrl')} disabled={disabled}/>
           </div>
           <button className="btn btn-default" type="submit" disabled={disabled}>Setup EventCallbackUrl</button>
           {this.state.error ? <div className="alert alert-danger">{this.state.error}</div> : null }
@@ -248,6 +322,7 @@ var EventCallbackSetupForm = React.createClass({
 });
 
 var SendForm = React.createClass({
+  mixins: [React.addons.LinkedStateMixin],
   handleSubmit: function(e) {
     e.preventDefault();
     var fromEmail = React.findDOMNode(this.refs.fromEmail).value.trim();
@@ -278,10 +353,6 @@ var SendForm = React.createClass({
           console.log(data);
 
           this.setState({lastCallSuccess : true, error: null});
-
-          React.findDOMNode(this.refs.recipient).value = '';
-          React.findDOMNode(this.refs.subject).value = '';
-          React.findDOMNode(this.refs.body).value = '';
         }.bind(this),
         error: function(xhr, status, err) {
           this.setState({
@@ -296,32 +367,40 @@ var SendForm = React.createClass({
       disabled: true,
       lastCallSuccess: null,
       error: null,
-      config: {},
-      configError: null
+      recipient: null,
+      subject: null,
+      body: null,
     }
   },
-  componentDidMount: function () {
-    $.ajax({
-        url: this.props.configUrl,
-        dataType: 'json',
-        type: 'GET',
-        success: function(config) { // callback method for further manipulations             
-          console.log("Config loaded", config);
+  componentDidUpdate: function (prevProps, prevState) {
+    var changed, recipient, disabled, subject, body;
 
-          this.setState({config: config, configError: null});
-        }.bind(this),
-        error: function(xhr, status, err) {
-          this.setState({
-            configError: xhr.responseText
-          })
-        }.bind(this)
-      });
-  },
-  componentDidUpdate: function (prevProps) {
+    recipient = prevState.recipient
+    subject = prevState.subject
+    body = prevState.body
+    changed = false;
+    disabled = true;
     if (this.props.apiKey && this.props.apiSecret 
       && prevProps.apikey != this.props.apiKey
       && prevProps.apiSecret != this.props.apiSecret) {
-      this.setState({disabled: false});
+      disabled = false;
+      changed = true;
+    }
+
+    if(prevProps.config != this.props.config) {
+      recipient = this.props.config.DefaultRecipient
+      subject = this.props.config.DefaultSubject
+      body = this.props.config.DefaultBody
+      changed = true;
+    }
+
+    if (changed) {
+      this.setState({
+        disabled: disabled,
+        recipient: recipient,
+        subject: subject,
+        body: body
+      })
     }
   },
   render: function() {
@@ -333,11 +412,11 @@ var SendForm = React.createClass({
             <label htmlFor="fromEmail">From email (<a href="https://app.mailjet.com/account/sender">valid Mailjet sender</a>)</label>
             <input type="text" placeholder="api@mailjet.com" id="fromEmail" ref="fromEmail" className="form-control" disabled={disabled}/>
             <label htmlFor="recipient">To</label>
-            <input type="text" placeholder="api@mailjet.com" id="recipient" ref="recipient" placeholder="Optional, default to from" className="form-control" disabled={disabled} value={this.state.config.DefaultRecipient} />
+            <input type="text" placeholder="api@mailjet.com" id="recipient" ref="recipient" placeholder="Optional, default to from" className="form-control" disabled={disabled} valueLink={this.linkState('recipient')} />
             <label htmlFor="subject">Subject</label>
-            <input type="text" placeholder="Hello World!" id="subject" ref="subject" className="form-control" disabled={disabled} value={this.state.config.DefaultSubject} />
+            <input type="text" placeholder="Hello World!" id="subject" ref="subject" className="form-control" disabled={disabled} valueLink={this.linkState('subject')} />
             <label htmlFor="body">Subject</label>
-            <textarea placeholder="Say something..." id="body" ref="body" className="form-control" disabled={disabled} value={this.state.config.DefaultBody}></textarea>
+            <textarea placeholder="Say something..." id="body" ref="body" className="form-control" disabled={disabled} valueLink={this.linkState('body')}></textarea>
           </div>
           <button className="btn btn-default" type="submit" disabled={disabled}>Send!</button>
           {this.state.error ? <div className="alert alert-danger">{this.state.error}</div> : null }
