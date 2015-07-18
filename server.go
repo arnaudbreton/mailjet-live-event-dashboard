@@ -66,6 +66,8 @@ type mailjetAPIEventCallbackUrlPayload struct {
 
 type mailjetConfig struct {
 	BaseUrl string
+	DefaultApiKey string
+	DefaultApiSecret string
 	DefaultRecipient string
 	DefaultSubject string
 	DefaultBody string
@@ -307,14 +309,17 @@ func handleEventSetup(w http.ResponseWriter, r *http.Request) {
 		getResponse, err := client.Do(getReq)
 
 		log.Println("Mailjet API GET response to", eventUrl.String(), getResponse)
-		if getResponse.StatusCode == 404 {
+		if getResponse.StatusCode == 401 {
+			handleError(w, fmt.Sprintf("Unauthorized"), http.StatusUnauthorized)
+			return
+		} else if getResponse.StatusCode == 404 {
 			postReq, _ := http.NewRequest("POST", baseEventUrl.String(), bytes.NewReader(payloadMarshalled))
 			postReq.Header.Set("Content-Type", "application/json")
 			postReq.SetBasicAuth(p.ApiKey, p.ApiSecret)
 
 			postResponse, err := client.Do(postReq)
 			if  err != nil {
-				handleError(w, fmt.Sprintf("Unable to create the message to Mailjet : %s", err), http.StatusInternalServerError)
+				handleError(w, fmt.Sprintf("Unable to create the eventcallbackurl at Mailjet : %s", err), http.StatusInternalServerError)
 				return
 			}
 			log.Println("Mailjet API POST response to", baseEventUrl.String(), postResponse)
