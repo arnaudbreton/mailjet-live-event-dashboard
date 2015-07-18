@@ -1,5 +1,7 @@
 {
 	"BaseUrl": "https://api.mailjet.com",
+	"DefaultApiKey": "",
+	"DefaultApiSecret": "",
 	"DefaultRecipient": "",
 	"DefaultSubject": "",
 	"DefaultBody": ""
