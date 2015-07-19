@@ -12,13 +12,12 @@
 
 var Event = React.createClass({
   render: function() {
-    var rawMarkup = marked(this.props.children.toString(), {sanitize: true});
     return (
       <div className="Event">
-        <h2 className="EventType">
+        <h4 className="EventType">
           Event: {this.props.eventType}
-        </h2>
-        <span dangerouslySetInnerHTML={{__html: rawMarkup}} />
+        </h4>
+        <pre>{JSON.stringify(this.props.payload, null, 2)}</pre>
       </div>
     );
   }
@@ -27,7 +26,7 @@ var Event = React.createClass({
 var EventBox = React.createClass({
   loadEventsFromServer: function() {
     $.ajax({
-      url: this.props.eventsUrl,
+      url: this.state.eventsUrl,
       dataType: 'json',
       data: {apikey: this.state.apiKey},
       cache: false,
@@ -51,6 +50,7 @@ var EventBox = React.createClass({
         }.bind(this),
         error: function(xhr, status, err) {
           this.setState({
+            config: null,
             configError: xhr.responseText
           })
         }.bind(this)
@@ -62,23 +62,27 @@ var EventBox = React.createClass({
       if (prevState.intervalId) {
         clearInterval(prevState.intervalId);
       }
+
       this.loadEventsFromServer();
       intervalId = setInterval(this.loadEventsFromServer, this.props.pollInterval);
+
       this.setState({
         intervalId: intervalId
       });
     }
   },
-  handleConfigSubmit: function(configEvent) {
+  handleConfigSubmit: function(config) {
     this.setState({
-      apiKey: configEvent.apiKey,
-      apiSecret: configEvent.apiSecret,
+      eventsUrl: this.props.eventsUrl.replace('{apikey}', config.apiKey),
+      apiKey: config.apiKey,
+      apiSecret: config.apiSecret,
     });
   },
   getInitialState: function() {
     return {
       config: {},
       configError: null,
+      eventsUrl: null,
       apiKey: null,
       apiSecret: null,
       intervalId: null,
@@ -125,16 +129,20 @@ var EventList = React.createClass({
       })()
     }
     else {
-      EventNodes = this.props.data.map(function(event, index) {
+      var nodes = this.props.data.map(function(event, index) {
         return (
-          // `key` is a React-specific concept and is not mandatory for the
-          // purpose of this tutorial. if you're curious, see more here:
-          // http://facebook.github.io/react/docs/multiple-components.html#dynamic-children
-          <Event eventType={event.EventType} key={index}>
-            {JSON.stringify(event.Payload)}
-          </Event>
+          <Event eventType={event.EventType} payload={event.Payload}></Event>
         );
       });
+
+      EventNodes = (function() {
+        return (
+          <div>
+            <h3>Last {nodes.length} events</h3>
+            {nodes}
+          </div>
+        )
+      })()
     }
     return (
       <div className="EventList">
@@ -184,8 +192,9 @@ var ConfigForm = React.createClass({
   render: function() {
     return (
       <section className="ConfigForm">
+        <h3>Setup Mailjet credentials</h3>
         <div className="alert alert-info">
-          To start seeing events, please fill your <a href="https://app.mailjet.com/account/api_keys" target="_blank">Mailjet API key / secret.</a> <br/>
+          To start receiving events, please fill your <a href="https://app.mailjet.com/account/api_keys" target="_blank">Mailjet API key</a>.<br/>
           <strong>The secret key is never stored by this application.</strong>
         </div>
         <form  onSubmit={this.handleSubmit}>
@@ -256,21 +265,21 @@ var EventCallbackSetupForm = React.createClass({
       });
   },
   getEventUrl: function () {
-    pathArray = location.href.split( '/' );
-    protocol = pathArray[0];
-    host = pathArray[2];
-    baseUrl = protocol + '//' + host;
+    if (!this.props.apiKey) {
+      return ""
+    }
+
+    pathArray = location.href.split( '/' )
+    protocol = pathArray[0]
+    host = pathArray[2]
+    baseUrl = protocol + '//' + host
 
     var url;
     if (baseUrl.indexOf("localhost") > -1) {
       url = ""
     }
     else {
-      url = baseUrl + "/events"
-    }
-
-    if (this.props.apiKey) {
-      url += "?apikey=" + this.props.apiKey;
+      url = baseUrl + "/apikey/" + this.props.apiKey + "/events";
     }
 
     return url;
@@ -299,6 +308,7 @@ var EventCallbackSetupForm = React.createClass({
 
     return (
       <section className="EventCallbackSetupForm">
+        <h3>Event callback URL configuration</h3>
         <div className="alert alert-warning">
           This might override an already setup event callback url on your account.<br/>
           For testing purpose, please <a href="https://app.mailjet.com/account/api_keys" target="_blank">create a dedicated API key</a>. 
@@ -407,8 +417,9 @@ var SendForm = React.createClass({
   render: function() {
     var disabled = this.state.disabled
     return (
-      <section>
-        <form className="SendForm" onSubmit={this.handleSubmit}>
+      <section className="SendForm">
+        <h3>Send sample email</h3>
+        <form onSubmit={this.handleSubmit}>
           <div className="form-group">
             <label htmlFor="fromEmail">From email (<a href="https://app.mailjet.com/account/sender">valid Mailjet sender</a>)</label>
             <input type="text" placeholder="api@mailjet.com" id="fromEmail" ref="fromEmail" className="form-control" disabled={disabled}/>
@@ -429,6 +440,6 @@ var SendForm = React.createClass({
 });
 
 React.render(
-  <EventBox eventsUrl="events" sendUrl="messages" eventSetupUrl="events/setup" configUrl="config" pollInterval={2000} />,
+  <EventBox eventsUrl="/apikey/{apikey}/events" sendUrl="messages" eventSetupUrl="events/setup" configUrl="config" pollInterval={2000} />,
   document.getElementById('content')
 );

@@ -1,5 +1,6 @@
 {
 	"base_url": "https://api.mailjet.com",
+	"max_events_count": 10,
 	"default": {
 		"api_key": "",
 		"api_secret": "",
