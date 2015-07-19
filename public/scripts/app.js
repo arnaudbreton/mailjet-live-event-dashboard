@@ -28,7 +28,6 @@ var EventBox = React.createClass({
     $.ajax({
       url: this.state.eventsUrl,
       dataType: 'json',
-      data: {apikey: this.state.apiKey},
       cache: false,
       success: function(data) {
         this.setState({data: data});
