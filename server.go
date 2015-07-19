@@ -65,12 +65,8 @@ type mailjetAPIEventCallbackUrlPayload struct {
 }
 
 type mailjetConfig struct {
-	BaseUrl string
-	DefaultApiKey string
-	DefaultApiSecret string
-	DefaultRecipient string
-	DefaultSubject string
-	DefaultBody string
+	BaseUrl string `json:"base_url"`
+	Default map[string]string `json:"default"`
 }
 
 const dataFileBaseName = "events_%s.json"

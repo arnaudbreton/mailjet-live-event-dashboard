@@ -1,8 +1,10 @@
 {
-	"BaseUrl": "https://api.mailjet.com",
-	"DefaultApiKey": "",
-	"DefaultApiSecret": "",
-	"DefaultRecipient": "",
-	"DefaultSubject": "",
-	"DefaultBody": ""
+	"base_url": "https://api.mailjet.com",
+	"default": {
+		"api_key": "",
+		"api_secret": "",
+		"recipient": "",
+		"subject": "",
+		"body": ""
+	}
 }

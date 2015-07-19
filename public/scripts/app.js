@@ -168,8 +168,8 @@ var ConfigForm = React.createClass({
   componentDidUpdate: function (prevProps) {
     if (prevProps.config != this.props.config) {
       this.setState({
-        apiKey: this.props.config.DefaultApiKey,
-        apiSecret: this.props.config.DefaultApiSecret
+        apiKey: this.props.config.default.api_key,
+        apiSecret: this.props.config.default.api_secret
       });
     }
   },
@@ -177,8 +177,8 @@ var ConfigForm = React.createClass({
     return {
       error: null,
       warning: null,
-      apiKey: this.props.config.DefaultApiKey,
-      apiSecret: this.props.config.DefaultApiSecret,
+      apiKey: null,
+      apiSecret: null,
     }
   },
   render: function() {
@@ -311,6 +311,7 @@ var EventCallbackSetupForm = React.createClass({
             </select>
             <label htmlFor="url">URL</label>
             <input type="text" ref="url" placeholder="https://example.com" className="form-control" valueLink={this.linkState('eventUrl')} disabled={disabled}/>
+            {this.state.eventUrl ? null : <div className="alert alert-warning">You are running on localhost, you must open a local tunnel (like <a href='https://ngrok.com/'>ngrok</a>) to receive events</div> }
           </div>
           <button className="btn btn-default" type="submit" disabled={disabled}>Setup EventCallbackUrl</button>
           {this.state.error ? <div className="alert alert-danger">{this.state.error}</div> : null }
@@ -388,9 +389,9 @@ var SendForm = React.createClass({
     }
 
     if(prevProps.config != this.props.config) {
-      recipient = this.props.config.DefaultRecipient
-      subject = this.props.config.DefaultSubject
-      body = this.props.config.DefaultBody
+      recipient = this.props.config.default.recipient
+      subject = this.props.config.default.subject
+      body = this.props.config.default.body
       changed = true;
     }
 

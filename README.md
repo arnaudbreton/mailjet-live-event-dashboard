@@ -14,9 +14,11 @@ Install [Golang](http://golang.org/) to run the API server.
 Install [Bower](http://bower.io/), the package manager for the web.
 
 Copy the `config.json.dist` file to `config.json` and fill it with the following information (all optional):
-*`DefaultRecipient`: the default email address to send the sample email to
-*`DefaultSubject`: the default subject of the sample email
-*`DefaultBody`: the default body of the sample email
+*`api_key`: the default Mailjet API key to use
+*`api_secret`: the default Mailjet API secret to use
+*`recipient`: the default email address to send the sample email to
+*`subject`: the default subject of the sample email
+*`body`: the default body of the sample email
 
 Run the bower install command to fetch front-end dependencies: `bower install`
 Run the server: `go run server.go`. The server accepts an optional parameter to set the port.
