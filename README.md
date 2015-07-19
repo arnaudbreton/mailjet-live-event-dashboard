@@ -36,3 +36,6 @@ Also, don't hesitate to email or [tweet](https://twitter.com/arnaud_breton) me!
 ## (Low) hanging fruits
 *Rewrite the API in React, to make it isomorphic
 *Improve the design
+*Write [Go doc](https://godoc.org/)
+*Add tests
+*Move Event callback URL to backup first before updating if any
