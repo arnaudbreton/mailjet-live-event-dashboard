@@ -148,7 +148,7 @@ func handleEvents(w http.ResponseWriter, r *http.Request) {
 			Payload: mjEventPayload,
 		}
 		events = append([]eventItem{newEventItem}, events...)
-		if config.MaxEventsCount > 0 {
+		if config.MaxEventsCount > 0 && len(events) > config.MaxEventsCount {
 			events = events[:config.MaxEventsCount]
 		}
 
