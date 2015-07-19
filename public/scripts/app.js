@@ -93,6 +93,7 @@ var EventBox = React.createClass({
       <div className="EventBox">
         <h1>Mailjet Live Event API Dashboard</h1>
         <p>
+          A demo application for <a href="http://dev.mailjet.com/guides/event-api-guide/" target="_blank">Mailjet Event API</a>.<br/>
           Created by <a href="https://twitter.com/arnaud_breton" target="_blank">Arnaud Breton</a>, Head of Developer Relations at <a href="https://mailjet.com" target="_blank">Mailjet</a>
         </p>
         <div className="container-fluid">
