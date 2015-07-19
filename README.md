@@ -13,7 +13,7 @@ Go [here](http://37.187.61.17:3001/)
 Install [Golang](http://golang.org/) to run the API server.
 Install [Bower](http://bower.io/), the package manager for the web.
 
-Install server dependencies: 
+Install server dependencies: `go get github.com/gorilla/mux`
 
 Copy the `config.json.dist` file to `config.json` and fill it with the following information (all optional):
 *`base_url`: the Mailjet base URL. Default to our production environment
