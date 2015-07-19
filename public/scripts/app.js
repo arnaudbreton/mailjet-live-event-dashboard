@@ -13,7 +13,7 @@
 var Event = React.createClass({
   render: function() {
     return (
-      <div className="Event">
+      <div className="Event" className="col-md-6">
         <h4 className="EventType">
           Event: {this.props.eventType}
         </h4>
@@ -97,13 +97,21 @@ var EventBox = React.createClass({
           Created by <a href="https://twitter.com/arnaud_breton" target="_blank">Arnaud Breton</a>, Head of Developer Relations at <a href="https://mailjet.com" target="_blank">Mailjet</a>
         </p>
         <div className="container-fluid">
-          <div className="col-md-6">
-            <ConfigForm config={this.state.config} onEventSubmit={this.handleConfigSubmit} />
-            <EventCallbackSetupForm  url={this.props.eventSetupUrl} apiKey={this.state.apiKey} apiSecret={this.state.apiSecret}/>
-            <SendForm url={this.props.sendUrl} config={this.state.config} apiKey={this.state.apiKey} apiSecret={this.state.apiSecret} />
+          <div className="row">
+            <div className="col-md-4">
+              <ConfigForm config={this.state.config} onEventSubmit={this.handleConfigSubmit} />
+            </div>
+            <div className="col-md-4">
+              <EventCallbackSetupForm  url={this.props.eventSetupUrl} apiKey={this.state.apiKey} apiSecret={this.state.apiSecret}/>
+            </div>
+            <div className="col-md-4">
+              <SendForm url={this.props.sendUrl} config={this.state.config} apiKey={this.state.apiKey} apiSecret={this.state.apiSecret} />
+            </div>
           </div>
-          <div className="col-md-6">
-            <EventList data={this.state.data} apiKey={this.state.apiKey}/>
+          <div className="row">
+            <div className="col-md-12">
+              <EventList data={this.state.data} apiKey={this.state.apiKey}/>
+            </div>
           </div>
         </div>
       </div>

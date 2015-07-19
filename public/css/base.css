@@ -60,14 +60,3 @@ p, ul {
 ul {
   padding-left: 30px;
 }
-
-section {
-  padding: 10px;
-  /*border: 1px solid black;*/
-  margin-top: 10px;
-}
-
-.ConfigForm {
-  margin-top: 0;
-  padding-top: 0
-}
