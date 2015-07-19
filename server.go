@@ -1,15 +1,3 @@
-/**
- * This file provided by Facebook is for non-commercial testing and evaluation purposes only.
- * Facebook reserves all rights not expressly granted.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
- * FACEBOOK BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
- * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
- * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
-
 package main
 
 import (
@@ -71,6 +59,10 @@ type mailjetConfig struct {
 	Default map[string]string `json:"default"`
 }
 
+type apiError struct {
+	ErrorMessage string
+}
+
 const dataFileBaseName = "events_%s.json"
 const configFilePath = "./config.json"
 const eventCallbackUrlBaseUrl = "/v3/REST/eventcallbackurl"
@@ -84,7 +76,11 @@ var ErrorLogger *log.Logger
 
 func handleError(w http.ResponseWriter, message string, status int) {
 	ErrorLogger.Println(status, message)
-	http.Error(w, fmt.Sprintf(message), status)
+
+	e := apiError{ErrorMessage: message}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(e)
 }
 
 // Handle events
@@ -187,11 +183,11 @@ func handleMessages(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case "POST":
-		response, _ := ioutil.ReadAll(r.Body)
-		TraceLogger.Println("New message payload received", string(response))
+		reqBody, _ := ioutil.ReadAll(r.Body)
+		TraceLogger.Println("New message payload received", string(reqBody))
 
 		messagePayload := messagePayload{}
-		json.Unmarshal(response, &messagePayload)
+		json.Unmarshal(reqBody, &messagePayload)
 
 		if messagePayload.ApiKey == "" {
 			handleError(w, "API key is mandatory", http.StatusBadRequest)
@@ -241,14 +237,14 @@ func handleMessages(w http.ResponseWriter, r *http.Request) {
 
 		mailjetResponse, err := client.Do(req)
 		if  err != nil {
-			handleError(w, fmt.Sprintf("Unable to POST the message to Mailjet : %s", err), http.StatusInternalServerError)
+			handleError(w, err.Error(), mailjetResponse.StatusCode)
 			return
 		}
 		TraceLogger.Println("Payload POST-ed to Mailjet Send API", mailjetResponse)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "no-cache")
-		io.Copy(w, bytes.NewReader(response))
+		io.Copy(w, bytes.NewReader(reqBody))
 
 	default:
 		// Don't know the method, so error

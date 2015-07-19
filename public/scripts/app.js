@@ -43,14 +43,12 @@ var EventBox = React.createClass({
         dataType: 'json',
         type: 'GET',
         success: function(config) { // callback method for further manipulations             
-          console.log("Config loaded", config);
-
           this.setState({config: config, configError: null});
         }.bind(this),
         error: function(xhr, status, err) {
           this.setState({
             config: null,
-            configError: xhr.responseText
+            configError: xhr.responseJSON.ErrorMessage
           })
         }.bind(this)
       });
@@ -267,7 +265,7 @@ var EventCallbackSetupForm = React.createClass({
         error: function(xhr, status, err) {
           this.setState({
             lastCallSuccess: false,
-            error: xhr.responseText
+            error: xhr.responseJSON.ErrorMessage
           })
         }.bind(this)
       });
@@ -369,14 +367,12 @@ var SendForm = React.createClass({
         type: 'POST',
         data: JSON.stringify(payload),
         success: function(data) { // callback method for further manipulations             
-          console.log(data);
-
           this.setState({lastCallSuccess : true, error: null});
         }.bind(this),
         error: function(xhr, status, err) {
           this.setState({
             lastCallSuccess: false,
-            error: xhr.responseText
+            error: xhr.responseJSON.ErrorMessage
           })
         }.bind(this)
       });
