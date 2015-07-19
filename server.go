@@ -12,6 +12,7 @@ import (
 	"os"
 	"sync"
 	"github.com/gorilla/mux"
+	"errors"
 )
 
 type eventPayload interface{}
@@ -26,8 +27,6 @@ type eventItem struct {
 }
 
 type messagePayload struct {
-	ApiKey string
-	ApiSecret string
 	FromEmail string
 	Recipient string
 	Body string
@@ -42,8 +41,6 @@ type mailjetAPIMessagePayload struct {
 }
 
 type eventSetupPayload struct {
-	ApiKey string
-	ApiSecret string
 	EventType string
 	CallbackUrl string
 }
@@ -81,6 +78,28 @@ func handleError(w http.ResponseWriter, message string, status int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(e)
+}
+
+func handleAuth(r *http.Request) (string, string, error) {
+	username, password, ok := r.BasicAuth()
+	var err string
+	if !ok {
+		err = "Error when reading auth"
+	}
+
+	if username == "" {
+		err = "API key is mandatory"
+	}
+
+	if password == "" {
+		err = "API secret is mandatory"
+	}
+
+	if err != "" {
+		return username, password, errors.New(err)
+	}
+
+	return username, password, nil
 }
 
 // Handle events
@@ -189,13 +208,9 @@ func handleMessages(w http.ResponseWriter, r *http.Request) {
 		messagePayload := messagePayload{}
 		json.Unmarshal(reqBody, &messagePayload)
 
-		if messagePayload.ApiKey == "" {
-			handleError(w, "API key is mandatory", http.StatusBadRequest)
-			return
-		}
-
-		if messagePayload.ApiSecret == "" {
-			handleError(w, "API secret is mandatory", http.StatusBadRequest)
+		username, password, authError := handleAuth(r)
+		if authError != nil {
+			handleError(w, authError.Error(), http.StatusUnauthorized)
 			return
 		}
 
@@ -233,7 +248,7 @@ func handleMessages(w http.ResponseWriter, r *http.Request) {
 		client := &http.Client{}
 		req, _ := http.NewRequest("POST", config.BaseUrl + "/v3/send/message", bytes.NewReader(payloadMarshalled))
 		req.Header.Set("Content-Type", "application/json")
-		req.SetBasicAuth(messagePayload.ApiKey, messagePayload.ApiSecret)
+		req.SetBasicAuth(username, password)
 
 		mailjetResponse, err := client.Do(req)
 		if  err != nil {
@@ -263,13 +278,9 @@ func handleEventSetup(w http.ResponseWriter, r *http.Request) {
 		p := eventSetupPayload{}
 		json.Unmarshal(reqMessage, &p)
 
-		if p.ApiKey == "" {
-			handleError(w, "API key is mandatory", http.StatusBadRequest)
-			return
-		}
-
-		if p.ApiSecret == "" {
-			handleError(w, "API secret is mandatory", http.StatusBadRequest)
+		username, password, authError := handleAuth(r)
+		if authError != nil {
+			handleError(w, authError.Error(), http.StatusUnauthorized)
 			return
 		}
 
@@ -304,35 +315,43 @@ func handleEventSetup(w http.ResponseWriter, r *http.Request) {
 		}
 
 		getReq, _ := http.NewRequest("GET", eventUrl.String(), nil)
-		getReq.SetBasicAuth(p.ApiKey, p.ApiSecret) 
+		getReq.SetBasicAuth(username, password) 
 		getResponse, err := client.Do(getReq)
 
 		TraceLogger.Println("Mailjet API GET response to", eventUrl.String(), getResponse)
-		if getResponse.StatusCode == 401 {
-			handleError(w, fmt.Sprintf("Unauthorized"), http.StatusUnauthorized)
+		if getResponse.StatusCode != 200 && getResponse.StatusCode != 404 {
+			handleError(w, getResponse.Status, getResponse.StatusCode)
 			return
 		} else if getResponse.StatusCode == 404 {
 			postReq, _ := http.NewRequest("POST", baseEventUrl.String(), bytes.NewReader(payloadMarshalled))
 			postReq.Header.Set("Content-Type", "application/json")
-			postReq.SetBasicAuth(p.ApiKey, p.ApiSecret)
-
+			postReq.SetBasicAuth(username, password)
 			postResponse, err := client.Do(postReq)
+
+			TraceLogger.Println("Mailjet API POST response to", baseEventUrl.String(), postResponse)
 			if  err != nil {
-				handleError(w, fmt.Sprintf("Unable to create the eventcallbackurl at Mailjet : %s", err), http.StatusInternalServerError)
+				handleError(w, err.Error(), postResponse.StatusCode)
 				return
 			}
-			TraceLogger.Println("Mailjet API POST response to", baseEventUrl.String(), postResponse)
-		} else {
+			if postResponse.StatusCode != 201 && postResponse.StatusCode != 200 {
+				handleError(w, postResponse.Status, postResponse.StatusCode)
+				return
+			}
+		} else if getResponse.StatusCode == 200 {
 			putReq, _ := http.NewRequest("PUT", eventUrl.String(), bytes.NewReader(payloadMarshalled))
-			putReq.SetBasicAuth(p.ApiKey, p.ApiSecret) 
+			putReq.SetBasicAuth(username, password) 
 			putReq.Header.Set("Content-Type", "application/json")
 			putResponse, err := client.Do(putReq)
-			if  err != nil {
-				handleError(w, fmt.Sprintf("Unable to update the eventcallbackurl to Mailjet : %s", err), http.StatusInternalServerError)
-				return
-			}
 
 			TraceLogger.Println("Mailjet API PUT response to", eventUrl, putResponse)
+			if  err != nil {
+				handleError(w, err.Error(), putResponse.StatusCode)
+				return
+			}
+			if putResponse.StatusCode != 200 {
+				handleError(w, putResponse.Status, putResponse.StatusCode)
+				return
+			}
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -387,7 +406,7 @@ func main() {
 	r := mux.NewRouter()
     r.HandleFunc("/config", handleConfig)
     r.HandleFunc("/apikey/{apikey}/events", handleEvents)
-	r.HandleFunc("/events/setup", handleEventSetup)
+	r.HandleFunc("/apikey/{apikey}/events/setup", handleEventSetup)
 	r.HandleFunc("/messages", handleMessages)
 
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./public")))

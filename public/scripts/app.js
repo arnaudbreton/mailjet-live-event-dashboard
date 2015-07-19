@@ -238,8 +238,6 @@ var EventCallbackSetupForm = React.createClass({
     var url = React.findDOMNode(this.refs.url).value.trim();
 
     var payload = {
-      ApiKey: this.props.apiKey,
-      ApiSecret: this.props.apiSecret,
       EventType: eventType,
       CallbackUrl: url
     };
@@ -250,9 +248,12 @@ var EventCallbackSetupForm = React.createClass({
     });
 
     $.ajax({
-        url: this.props.url,
+        url: this.props.url.replace('{apikey}', this.props.apiKey),
         dataType: 'json',
         type: 'POST',
+        headers: {
+          "Authorization": "Basic " + btoa(this.props.apiKey + ":" + this.props.apiSecret)
+        },
         data: JSON.stringify(payload),
         success: function(data) { // callback method for further manipulations             
           console.log(data);
@@ -348,8 +349,6 @@ var SendForm = React.createClass({
     var body = React.findDOMNode(this.refs.body).value.trim();
 
     var payload = {
-      ApiKey: this.props.apiKey,
-      ApiSecret: this.props.apiSecret,
       FromEmail: fromEmail,
       Recipient: recipient,
       Subject: subject,
@@ -365,6 +364,9 @@ var SendForm = React.createClass({
         url: this.props.url,
         dataType: 'json',
         type: 'POST',
+        headers: {
+          "Authorization": "Basic " + btoa(this.props.apiKey + ":" + this.props.apiSecret)
+        },
         data: JSON.stringify(payload),
         success: function(data) { // callback method for further manipulations             
           this.setState({lastCallSuccess : true, error: null});
@@ -444,6 +446,6 @@ var SendForm = React.createClass({
 });
 
 React.render(
-  <EventBox eventsUrl="/apikey/{apikey}/events" sendUrl="messages" eventSetupUrl="events/setup" configUrl="config" pollInterval={2000} />,
+  <EventBox eventsUrl="/apikey/{apikey}/events" sendUrl="messages" eventSetupUrl="/apikey/{apikey}/events/setup" configUrl="config" pollInterval={2000} />,
   document.getElementById('content')
 );
