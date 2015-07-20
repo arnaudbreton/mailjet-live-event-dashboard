@@ -16,13 +16,13 @@ Install [Bower](http://bower.io/), the package manager for the web.
 Install server dependencies: `go get github.com/gorilla/mux`
 
 Copy the `config.json.dist` file to `config.json` and fill it with the following information (all optional):
-*`base_url`: the Mailjet base URL. Default to our production environment
-*`max_events_count': the maximum number of events to display, default to 10. 0 for unlimited
-*`api_key`: the default Mailjet API key to use
-*`api_secret`: the default Mailjet API secret to use
-*`recipient`: the default email address to send the sample email to
-*`subject`: the default subject of the sample email
-*`body`: the default body of the sample email
+* `base_url`: the Mailjet base URL. Default to our production environment
+* `max_events_count': the maximum number of events to display, default to 10. 0 for unlimited
+* `api_key`: the default Mailjet API key to use
+* `api_secret`: the default Mailjet API secret to use
+* `recipient`: the default email address to send the sample email to
+* `subject`: the default subject of the sample email
+* `body`: the default body of the sample email
 
 Run the bower install command to fetch front-end dependencies: `bower install`
 Run the server: `go run server.go`. The server accepts an optional parameter to set the port.
@@ -34,8 +34,8 @@ Open a PR / issue here on Github.
 Also, don't hesitate to email or [tweet](https://twitter.com/arnaud_breton) me!
 
 ## (Low) hanging fruits
-*Rewrite the API in React, to make it isomorphic
-*Improve the design
-*Write [Go doc](https://godoc.org/)
-*Add tests
-*Move Event callback URL to backup first before updating if any
+* Rewrite the API in React, to make it isomorphic
+* Improve the design
+* Write [Go doc](https://godoc.org/)
+* Add tests
+* Move Event callback URL to backup first before updating if any
