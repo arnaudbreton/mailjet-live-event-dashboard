@@ -157,7 +157,7 @@ func handleEvents(w http.ResponseWriter, r *http.Request) {
 		var mjEvent mailjetAPIEvent
 		err1 := json.Unmarshal(response, &mjEvent)
 		if err1 != nil {
-			handleError(w, err.Error(), http.StatusBadRequest)
+			handleError(w, err1.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -176,14 +176,14 @@ func handleEvents(w http.ResponseWriter, r *http.Request) {
 		var err3 error
 		eventData, err3 = json.Marshal(events)
 		if err3 != nil {
-			handleError(w, fmt.Sprintf("Unable to marshal events to json: %s", err), http.StatusInternalServerError)
+			handleError(w, fmt.Sprintf("Unable to marshal events to json: %s", err3), http.StatusInternalServerError)
 			return
 		}
 
 		// Write out the events to the file, preserving permissions
 		err2 := ioutil.WriteFile(dataFileSession, eventData, fi.Mode())
 		if err2 != nil {
-			handleError(w, fmt.Sprintf("Unable to write events to data file (%s): %s", dataFileSession, err), http.StatusInternalServerError)
+			handleError(w, fmt.Sprintf("Unable to write events to data file (%s): %s", dataFileSession, err3), http.StatusInternalServerError)
 			return
 		}
 
