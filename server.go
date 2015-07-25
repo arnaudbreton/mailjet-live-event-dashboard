@@ -435,5 +435,5 @@ func main() {
     http.Handle("/", r)
 
 	TraceLogger.Println("Server started: http://localhost:" + port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	log.Fatal(http.ListenAndServeTLS("127.0.0.1:"+port, "startssl.pem", "", nil))
 }
