@@ -3,7 +3,10 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/gorilla/mux"
+	"github.com/kennygrant/sanitize"
 	"io"
 	"io/ioutil"
 	"log"
@@ -11,9 +14,6 @@ import (
 	"net/url"
 	"os"
 	"sync"
-	"github.com/gorilla/mux"
-	"errors"
-	"github.com/kennygrant/sanitize"
 )
 
 type eventPayload interface{}
@@ -24,37 +24,37 @@ type mailjetAPIEvent struct {
 
 type eventItem struct {
 	EventType string
-	Payload eventPayload
+	Payload   eventPayload
 }
 
 type messagePayload struct {
 	FromEmail string
 	Recipient string
-	Body string
-	Subject string
+	Body      string
+	Subject   string
 }
 
 type mailjetAPIMessagePayload struct {
 	FromEmail string
-	Subject string
+	Subject   string
 	Recipient string
-	Body string `json:"Html-part"`
+	Body      string `json:"Html-part"`
 }
 
 type eventSetupPayload struct {
-	EventType string
+	EventType   string
 	CallbackUrl string
 }
 
 type mailjetAPIEventCallbackUrlPayload struct {
 	EventType string
-	Url string
+	Url       string
 }
 
 type mailjetConfig struct {
-	BaseUrl string `json:"base_url"`
-	MaxEventsCount int `json:"max_events_count"`
-	Default map[string]string `json:"default"`
+	BaseUrl        string            `json:"base_url"`
+	MaxEventsCount int               `json:"max_events_count"`
+	Default        map[string]string `json:"default"`
 }
 
 type apiError struct {
@@ -165,7 +165,7 @@ func handleEvents(w http.ResponseWriter, r *http.Request) {
 		json.Unmarshal(response, &mjEventPayload)
 		newEventItem := eventItem{
 			EventType: mjEvent.Event,
-			Payload: mjEventPayload,
+			Payload:   mjEventPayload,
 		}
 		events = append([]eventItem{newEventItem}, events...)
 		if config.MaxEventsCount > 0 && len(events) > config.MaxEventsCount {
@@ -246,8 +246,8 @@ func handleMessages(w http.ResponseWriter, r *http.Request) {
 		payload := mailjetAPIMessagePayload{
 			FromEmail: messagePayload.FromEmail,
 			Recipient: messagePayload.Recipient,
-			Subject: messagePayload.Subject,
-			Body: messagePayload.Body,
+			Subject:   messagePayload.Subject,
+			Body:      messagePayload.Body,
 		}
 		payloadMarshalled, err := json.Marshal(payload)
 		if err != nil {
@@ -256,7 +256,7 @@ func handleMessages(w http.ResponseWriter, r *http.Request) {
 		}
 
 		client := &http.Client{}
-		req, _ := http.NewRequest("POST", config.BaseUrl + "/v3/send/message", bytes.NewReader(payloadMarshalled))
+		req, _ := http.NewRequest("POST", config.BaseUrl+"/v3/send/message", bytes.NewReader(payloadMarshalled))
 		req.Header.Set("Content-Type", "application/json")
 		req.SetBasicAuth(username, password)
 
@@ -283,7 +283,7 @@ func handleMessages(w http.ResponseWriter, r *http.Request) {
 
 // Handle messages
 func handleEventSetup(w http.ResponseWriter, r *http.Request) {
-	
+
 	switch r.Method {
 	case "POST":
 		reqMessage, _ := ioutil.ReadAll(r.Body)
@@ -314,7 +314,7 @@ func handleEventSetup(w http.ResponseWriter, r *http.Request) {
 
 		mjPayload := mailjetAPIEventCallbackUrlPayload{
 			EventType: p.EventType,
-			Url: p.CallbackUrl,
+			Url:       p.CallbackUrl,
 		}
 		payloadMarshalled, err := json.Marshal(mjPayload)
 		if err != nil {
@@ -333,7 +333,7 @@ func handleEventSetup(w http.ResponseWriter, r *http.Request) {
 		}
 
 		getReq, _ := http.NewRequest("GET", eventUrl.String(), nil)
-		getReq.SetBasicAuth(username, password) 
+		getReq.SetBasicAuth(username, password)
 		getResponse, err := client.Do(getReq)
 		if err != nil {
 			handleError(w, err.Error(), http.StatusInternalServerError)
@@ -351,7 +351,7 @@ func handleEventSetup(w http.ResponseWriter, r *http.Request) {
 			postResponse, err := client.Do(postReq)
 
 			TraceLogger.Println("Mailjet API POST response to", baseEventUrl.String(), postResponse)
-			if  err != nil {
+			if err != nil {
 				handleError(w, err.Error(), postResponse.StatusCode)
 				return
 			}
@@ -361,12 +361,12 @@ func handleEventSetup(w http.ResponseWriter, r *http.Request) {
 			}
 		} else if getResponse.StatusCode == 200 {
 			putReq, _ := http.NewRequest("PUT", eventUrl.String(), bytes.NewReader(payloadMarshalled))
-			putReq.SetBasicAuth(username, password) 
+			putReq.SetBasicAuth(username, password)
 			putReq.Header.Set("Content-Type", "application/json")
 			putResponse, err := client.Do(putReq)
 
 			TraceLogger.Println("Mailjet API PUT response to", eventUrl, putResponse)
-			if  err != nil {
+			if err != nil {
 				handleError(w, err.Error(), putResponse.StatusCode)
 				return
 			}
@@ -409,12 +409,12 @@ func main() {
 	}
 
 	TraceLogger = log.New(os.Stdout,
-        "TRACE: ",
-        log.Ldate|log.Ltime|log.Lshortfile)
+		"TRACE: ",
+		log.Ldate|log.Ltime|log.Lshortfile)
 
 	ErrorLogger = log.New(os.Stderr,
-        "ERROR: ",
-        log.Ldate|log.Ltime|log.Lshortfile)
+		"ERROR: ",
+		log.Ldate|log.Ltime|log.Lshortfile)
 
 	// Read the events from the file.
 	configFile, err := ioutil.ReadFile(configFilePath)
@@ -426,14 +426,14 @@ func main() {
 	TraceLogger.Println(fmt.Sprintf("Read config %+v", config))
 
 	r := mux.NewRouter()
-    r.HandleFunc("/config", handleConfig)
-    r.HandleFunc("/apikey/{apikey}/events", handleEvents)
+	r.HandleFunc("/config", handleConfig)
+	r.HandleFunc("/apikey/{apikey}/events", handleEvents)
 	r.HandleFunc("/apikey/{apikey}/events/setup", handleEventSetup)
 	r.HandleFunc("/messages", handleMessages)
 
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./public")))
-    http.Handle("/", r)
+	http.Handle("/", r)
 
 	TraceLogger.Println("Server started: http://localhost:" + port)
-	log.Fatal(http.ListenAndServeTLS("127.0.0.1:"+port, "startssl.pem", "", nil))
+	log.Fatal(http.ListenAndServe("127.0.0.1:"+port, nil))
 }
