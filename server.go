@@ -13,6 +13,7 @@ import (
 	"sync"
 	"github.com/gorilla/mux"
 	"errors"
+	"github.com/kennygrant/sanitize"
 )
 
 type eventPayload interface{}
@@ -110,7 +111,7 @@ func handleEvents(w http.ResponseWriter, r *http.Request) {
 	defer eventMutex.Unlock()
 
 	vars := mux.Vars(r)
-	apiKey := vars["apikey"]
+	apiKey := sanitize.BaseName(vars["apikey"])
 	if apiKey == "" {
 		handleError(w, "An API Key must be provided", http.StatusBadRequest)
 		return
