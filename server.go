@@ -154,7 +154,11 @@ func handleEvents(w http.ResponseWriter, r *http.Request) {
 
 		// Add a new event to the in memory slice of events
 		var mjEvent mailjetAPIEvent
-		json.Unmarshal(response, &mjEvent)
+		err1 := json.Unmarshal(response, &mjEvent)
+		if err1 != nil {
+			handleError(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 
 		var mjEventPayload eventPayload
 		json.Unmarshal(response, &mjEventPayload)
@@ -168,15 +172,16 @@ func handleEvents(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Marshal the events to indented json.
-		eventData, err = json.Marshal(events)
-		if err != nil {
+		var err3 error
+		eventData, err3 = json.Marshal(events)
+		if err3 != nil {
 			handleError(w, fmt.Sprintf("Unable to marshal events to json: %s", err), http.StatusInternalServerError)
 			return
 		}
 
 		// Write out the events to the file, preserving permissions
-		err := ioutil.WriteFile(dataFileSession, eventData, fi.Mode())
-		if err != nil {
+		err2 := ioutil.WriteFile(dataFileSession, eventData, fi.Mode())
+		if err2 != nil {
 			handleError(w, fmt.Sprintf("Unable to write events to data file (%s): %s", dataFileSession, err), http.StatusInternalServerError)
 			return
 		}
@@ -206,7 +211,11 @@ func handleMessages(w http.ResponseWriter, r *http.Request) {
 		TraceLogger.Println("New message payload received", string(reqBody))
 
 		messagePayload := messagePayload{}
-		json.Unmarshal(reqBody, &messagePayload)
+		err := json.Unmarshal(reqBody, &messagePayload)
+		if err != nil {
+			handleError(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 
 		username, password, authError := handleAuth(r)
 		if authError != nil {
@@ -251,8 +260,12 @@ func handleMessages(w http.ResponseWriter, r *http.Request) {
 		req.SetBasicAuth(username, password)
 
 		mailjetResponse, err := client.Do(req)
-		if  err != nil {
-			handleError(w, err.Error(), mailjetResponse.StatusCode)
+		if mailjetResponse.StatusCode != 200 {
+			handleError(w, mailjetResponse.Status, mailjetResponse.StatusCode)
+			return
+		}
+		if err != nil {
+			handleError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		TraceLogger.Println("Payload POST-ed to Mailjet Send API", mailjetResponse)
@@ -276,7 +289,11 @@ func handleEventSetup(w http.ResponseWriter, r *http.Request) {
 		TraceLogger.Println("New event setup payload received", string(reqMessage))
 
 		p := eventSetupPayload{}
-		json.Unmarshal(reqMessage, &p)
+		err := json.Unmarshal(reqMessage, &p)
+		if err != nil {
+			handleError(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 
 		username, password, authError := handleAuth(r)
 		if authError != nil {
@@ -317,6 +334,10 @@ func handleEventSetup(w http.ResponseWriter, r *http.Request) {
 		getReq, _ := http.NewRequest("GET", eventUrl.String(), nil)
 		getReq.SetBasicAuth(username, password) 
 		getResponse, err := client.Do(getReq)
+		if err != nil {
+			handleError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
 		TraceLogger.Println("Mailjet API GET response to", eventUrl.String(), getResponse)
 		if getResponse.StatusCode != 200 && getResponse.StatusCode != 404 {
