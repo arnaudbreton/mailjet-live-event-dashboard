@@ -6,7 +6,7 @@ Based on the offical [React tutorial](https://github.com/reactjs/react-tutorial)
 
 ## Demo
 
-Go [here](http://37.187.61.17:3001/)
+Go [here](https://mailjet-event-dashboard.arnaud.ninja/)
 
 ## Installation
 
