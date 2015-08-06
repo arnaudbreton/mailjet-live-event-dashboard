@@ -8,6 +8,7 @@
   "description": "A live Dashboard for Mailjet Event API",
   "license": "MIT",
   "dependencies": {
-    "react-bootstrap": "~0.23.7"
+    "react-bootstrap": "~0.23.7",
+    "blueimp-md5": "~1.1.1"
   }
 }

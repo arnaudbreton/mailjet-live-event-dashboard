@@ -69,8 +69,10 @@ var EventBox = React.createClass({
     }
   },
   handleConfigSubmit: function(config) {
+    var apiKeyID = config.apiKey + "-" + md5(config.apiSecret); 
     this.setState({
-      eventsUrl: this.props.eventsUrl.replace('{apikey}', config.apiKey),
+      eventsUrl: this.props.eventsUrl.replace('{apikey}', apiKeyID),
+      apiKeyID: apiKeyID,
       apiKey: config.apiKey,
       apiSecret: config.apiSecret,
     });
@@ -100,15 +102,15 @@ var EventBox = React.createClass({
               <ConfigForm config={this.state.config} onEventSubmit={this.handleConfigSubmit} />
             </div>
             <div className="col-md-4">
-              <EventCallbackSetupForm  url={this.props.eventSetupUrl} apiKey={this.state.apiKey} apiSecret={this.state.apiSecret}/>
+              <EventCallbackSetupForm  url={this.props.eventSetupUrl} apiKeyID={this.state.apiKeyID} apiKey={this.state.apiKey} apiSecret={this.state.apiSecret}/>
             </div>
             <div className="col-md-4">
-              <SendForm url={this.props.sendUrl} config={this.state.config} apiKey={this.state.apiKey} apiSecret={this.state.apiSecret} />
+              <SendForm url={this.props.sendUrl} config={this.state.config} apiKeyID={this.state.apiKeyID} apiKey={this.state.apiKey} apiSecret={this.state.apiSecret} />
             </div>
           </div>
           <div className="row">
             <div className="col-md-12">
-              <EventList data={this.state.data} apiKey={this.state.apiKey}/>
+              <EventList data={this.state.data} apiKeyID={this.state.apiKeyID} apiKey={this.state.apiKey}/>
             </div>
           </div>
         </div>
@@ -170,7 +172,8 @@ var ConfigForm = React.createClass({
     }
 
     if (!apiSecret) {
-      this.setState({warning: "API secret is mandatory to send sample email"})
+      this.setState({error: "API secret is mandatory"})
+      return
     }
 
     this.setState({error: null})
@@ -180,7 +183,8 @@ var ConfigForm = React.createClass({
     });
   },
   componentDidUpdate: function (prevProps) {
-    if (prevProps.config != this.props.config) {
+    if (prevProps.config != this.props.config 
+      && this.props.config && this.props.config.default) {
       this.setState({
         apiKey: this.props.config.default.api_key,
         apiSecret: this.props.config.default.api_secret
@@ -248,7 +252,7 @@ var EventCallbackSetupForm = React.createClass({
     });
 
     $.ajax({
-        url: this.props.url.replace('{apikey}', this.props.apiKey),
+        url: this.props.url.replace('{apikey}', this.props.apiKeyID),
         dataType: 'json',
         type: 'POST',
         headers: {
@@ -286,7 +290,7 @@ var EventCallbackSetupForm = React.createClass({
       url = ""
     }
     else {
-      url = baseUrl + "/apikey/" + this.props.apiKey + "/events";
+      url = baseUrl + "/apikey/" + this.props.apiKeyID + "/events";
     }
 
     return url;
@@ -404,7 +408,8 @@ var SendForm = React.createClass({
       changed = true;
     }
 
-    if(prevProps.config != this.props.config) {
+    if(prevProps.config != this.props.config
+      && this.props.config && this.props.config.default) {
       recipient = this.props.config.default.recipient
       subject = this.props.config.default.subject
       body = this.props.config.default.body
