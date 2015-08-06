@@ -37,7 +37,7 @@ type messagePayload struct {
 type mailjetAPIMessagePayload struct {
 	FromEmail string
 	Subject   string
-	Recipient string
+	To string
 	Body      string `json:"Html-part"`
 }
 
