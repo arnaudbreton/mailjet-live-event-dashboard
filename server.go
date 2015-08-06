@@ -245,7 +245,7 @@ func handleMessages(w http.ResponseWriter, r *http.Request) {
 
 		payload := mailjetAPIMessagePayload{
 			FromEmail: messagePayload.FromEmail,
-			Recipient: messagePayload.Recipient,
+			To: messagePayload.Recipient,
 			Subject:   messagePayload.Subject,
 			Body:      messagePayload.Body,
 		}
