@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"sync"
+	"strconv"
 )
 
 type eventPayload interface{}
@@ -61,8 +62,10 @@ type apiError struct {
 	ErrorMessage string
 }
 
+const defaultAddr = "127.0.0.1"
+const defaultPort = 3000
 const dataFileBaseName = "events_%s.json"
-const configFilePath = "./config.json"
+const defaultConfigFilePath = "./config.json"
 const eventCallbackUrlBaseUrl = "/v3/REST/eventcallbackurl"
 
 var eventMutex = new(sync.Mutex)
@@ -400,12 +403,36 @@ func handleConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	port := ""
-	if len(os.Args) == 2 {
-		port = os.Args[1]
+	port := -1
+	addr := ""
+	configFilePath := ""
+
+	if len(os.Args) >= 2 {
+		portParam, err := strconv.Atoi(os.Args[1])
+		if err != nil {
+			log.Fatal(fmt.Sprintf("Unable to read the port from command line: %s: %s", portParam, err), http.StatusInternalServerError)
+		}
+		port = portParam
 	}
-	if port == "" {
-		port = "3000"
+
+	if len(os.Args) >= 3 {
+		addr = os.Args[2]
+	}
+
+	if len(os.Args) >= 4 {
+		configFilePath = os.Args[3]
+	}
+
+	if port == -1 {
+		port = defaultPort
+	}
+
+	if addr == "" {
+		addr = defaultAddr
+	}
+
+	if configFilePath == "" {
+		configFilePath = defaultConfigFilePath
 	}
 
 	TraceLogger = log.New(os.Stdout,
@@ -423,7 +450,7 @@ func main() {
 		return
 	}
 	json.Unmarshal(configFile, &config)
-	TraceLogger.Println(fmt.Sprintf("Read config %+v", config))
+	TraceLogger.Println(fmt.Sprintf("Read config %s: %+v", configFilePath, config))
 
 	r := mux.NewRouter()
 	r.HandleFunc("/config", handleConfig)
@@ -434,6 +461,6 @@ func main() {
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./public")))
 	http.Handle("/", r)
 
-	TraceLogger.Println("Server started: http://localhost:" + port)
-	log.Fatal(http.ListenAndServe("127.0.0.1:"+port, nil))
+	TraceLogger.Println(fmt.Sprintf("Server started: http://%s:%d", addr, port))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%d", addr, port), nil))
 }
