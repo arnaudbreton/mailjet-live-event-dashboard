@@ -5,16 +5,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/kennygrant/sanitize"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
-	"sync"
 	"strconv"
+	"sync"
+
+	"github.com/gorilla/mux"
+	"github.com/kennygrant/sanitize"
 )
 
 type eventPayload interface{}
@@ -38,7 +39,7 @@ type messagePayload struct {
 type mailjetAPIMessagePayload struct {
 	FromEmail string
 	Subject   string
-	To string
+	To        string
 	Body      string `json:"Html-part"`
 }
 
@@ -248,7 +249,7 @@ func handleMessages(w http.ResponseWriter, r *http.Request) {
 
 		payload := mailjetAPIMessagePayload{
 			FromEmail: messagePayload.FromEmail,
-			To: messagePayload.Recipient,
+			To:        messagePayload.Recipient,
 			Subject:   messagePayload.Subject,
 			Body:      messagePayload.Body,
 		}
@@ -344,6 +345,7 @@ func handleEventSetup(w http.ResponseWriter, r *http.Request) {
 		}
 
 		TraceLogger.Println("Mailjet API GET response to", eventUrl.String(), getResponse)
+		defer getResponse.Body.Close()
 		if getResponse.StatusCode != 200 && getResponse.StatusCode != 404 {
 			handleError(w, getResponse.Status, getResponse.StatusCode)
 			return
